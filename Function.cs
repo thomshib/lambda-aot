@@ -1,0 +1,105 @@
+using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
+using Amazon.Lambda.Serialization.SystemTextJson;
+using System.Text.Json.Serialization;
+using Amazon.Lambda.APIGatewayEvents;
+using System.Text.Json;
+using Amazon.DynamoDBv2;
+
+namespace lambda_aot;
+
+public class Function
+{
+    /// <summary>
+    /// The main entry point for the Lambda function. The main function is called once during the Lambda init phase. It
+    /// initializes the .NET Lambda runtime client passing in the function handler to invoke for each Lambda event and
+    /// the JSON serializer to use for converting Lambda JSON format to the .NET types. 
+    /// </summary>
+
+    public static  CustomerRepository _customerRepository;
+
+    // This is the actual Lambda function handler. It is invoked by the Lambda runtime.
+    // For more information about the Lambda function handler see: https://docs.aws.amazon.com/lambda/latest/dg/programming-model.html#programming-model-handler-types
+    // The Lambda runtime will automatically deserialize the JSON input and deserialize the JSON output.
+    // [LambdaSerializer(typeof(JsonSerializer))]
+    // public static async Task<APIGatewayHttpApiV2ProxyResponse> FunctionHandler(APIGatewayHttpApiV2ProxyRequest input, ILambdaContext context)
+    // {
+    //     var customer = CustomerRepository.GetAsync(Guid.Parse("f47"));
+    //     var text = JsonSerializer.Serialize(customer,);
+    //      return await Task.FromResult(new APIGatewayHttpApiV2ProxyResponse
+    //             {
+    //                 StatusCode = 200,
+    //                 Body = "OK"
+    //             });
+    // }
+    private static async Task Main()
+    {
+        _customerRepository = new(new AmazonDynamoDBClient());
+        Func<APIGatewayHttpApiV2ProxyRequest, ILambdaContext, Task<APIGatewayHttpApiV2ProxyResponse>> handler = FunctionHandler;
+        await LambdaBootstrapBuilder.Create(handler, new SourceGeneratorLambdaJsonSerializer<LambdaFunctionJsonSerializerContext>())
+            .Build()
+            .RunAsync();
+    }
+
+    /// <summary>
+    /// A simple function that takes a string and does a ToUpper.
+    ///
+    /// To use this handler to respond to an AWS event, reference the appropriate package from 
+    /// https://github.com/aws/aws-lambda-dotnet#events
+    /// and change the string input parameter to the desired event type. When the event type
+    /// is changed, the handler type registered in the main method needs to be updated and the LambdaFunctionJsonSerializerContext 
+    /// defined below will need the JsonSerializable updated. If the return type and event type are different then the 
+    /// LambdaFunctionJsonSerializerContext must have two JsonSerializable attributes, one for each type.
+    ///
+    // When using Native AOT extra testing with the deployed Lambda functions is required to ensure
+    // the libraries used in the Lambda function work correctly with Native AOT. If a runtime 
+    // error occurs about missing types or methods the most likely solution will be to remove references to trim-unsafe 
+    // code or configure trimming options. This sample defaults to partial TrimMode because currently the AWS 
+    // SDK for .NET does not support trimming. This will result in a larger executable size, and still does not 
+    // guarantee runtime trimming errors won't be hit. 
+    /// </summary>
+    /// <param name="input"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
+   public static async Task<APIGatewayHttpApiV2ProxyResponse> FunctionHandler(APIGatewayHttpApiV2ProxyRequest input, ILambdaContext context)
+    {
+
+        var customer = await _customerRepository.GetAsync(Guid.Parse("968063a3-c5da-4b01-b5d5-d8a43d2332a3"));
+        var text = JsonSerializer.Serialize(customer,LambdaFunctionJsonSerializerContext.Default.Customer!);
+        
+        
+        //  return await Task.FromResult(new APIGatewayHttpApiV2ProxyResponse
+        //         {
+        //             StatusCode = 200,
+        //             Body = "OK"
+        //         });
+
+        return  new APIGatewayHttpApiV2ProxyResponse
+                {
+                    StatusCode = 200,
+                    Body = text,
+                    Headers = Headers
+                    
+                };
+    }
+
+    private static readonly Dictionary<string,string> Headers = new(){
+        {"content-type","application/json"}
+    };
+    
+}
+
+/// <summary>
+/// This class is used to register the input event and return type for the FunctionHandler method with the System.Text.Json source generator.
+/// There must be a JsonSerializable attribute for each type used as the input and return type or a runtime error will occur 
+/// from the JSON serializer unable to find the serialization information for unknown types.
+/// </summary>
+[JsonSerializable(typeof(APIGatewayHttpApiV2ProxyRequest))]
+[JsonSerializable(typeof(APIGatewayHttpApiV2ProxyResponse))]
+[JsonSerializable(typeof(Customer))]
+public partial class LambdaFunctionJsonSerializerContext : JsonSerializerContext
+{
+    // By using this partial class derived from JsonSerializerContext, we can generate reflection free JSON Serializer code at compile time
+    // which can deserialize our class and properties. However, we must attribute this class to tell it what types to generate serialization code for.
+    // See https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-source-generation
+}
