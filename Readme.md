@@ -57,8 +57,7 @@ To view execution logs of invocations of your function use the Logs tab in the o
 
 ## Here are some steps to follow to get started from the command line:
 
-Once you have edited your template and code you can deploy your application using the [Amazon.Lambda.Tools Global Tool](https://github.com/aws/aws-extensions-for-dotnet-cli#aws-lambda-amazonlambdatools) from the command line.  Version 5.6.0
-or later is required to deploy this project.
+Once you have edited your template and code you can deploy your application using the [Amazon.Lambda.Tools Global Tool](https://github.com/aws/aws-extensions-for-dotnet-cli#aws-lambda-amazonlambdatools) from the command line.  Version 5.6.0 or later is required to deploy this project.
 
 Install Amazon.Lambda.Tools Global Tools if not already installed.
 ```
