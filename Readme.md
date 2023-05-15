@@ -82,10 +82,10 @@ Deploy function to AWS Lambda
 ```
 
 
-## Arm64 !!
+## Arm64 !
 
 .NET 7 ARM requires a newer version of GLIBC than is available in the `provided.al2` Lambda runtime. .NET 7 functions that are deployed using
 the Arm64 architecture will fail to start with a runtime error stating the GLIBC version is below the required version for .NET 7
 
-Test
+
 
